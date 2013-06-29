@@ -14,6 +14,8 @@
 #define SCREEN_H 400
 
 #define QNT_GREEN 7
+#define QNT_RED 7
+#define QNT_BLUE 7
 
 typedef unsigned short int usint;
 
@@ -30,7 +32,7 @@ SDL_Surface* screen;
 enum typesOfBalls{
 	Green,
 	Blue,
-	Purple
+	Red
 }; // tipos das bolas, verde (preciso pegar), azul (pega as verdes e me da pontos), púrpura (ferra tudo), a amarela, que segue o mouse, não entra aqui.
 
 typedef enum typesOfBalls typesOfBall;
@@ -40,11 +42,12 @@ typedef struct {
 
     int incX, incY; // incrementos (positivos e/ou negativos)
 
-    SDL_Rect place;
+    int x, y, h, w;
+    // SDL_Rect place;
 
     usint isFree; // se não está grudada. Só server para as Green Balls
 
-    typesOfBall type; // 0 = verde 1 = 
+    typesOfBall type;
 } ball; // as bolas, todas, menos a amarela
 
 
@@ -62,72 +65,182 @@ int SDL_CollideBoundingCircle(int x1, int y1, int r1, int x2, int y2, int r2, in
 	return (dcentre_sq - r_sum_sq <= (offset*offset));
 }
 
+ball greens[QNT_GREEN];
+ball reds[QNT_RED];
+ball blues[QNT_BLUE];
 
 
-int main2(int argc, char const *argv[])
-{
-	int running = 1; //variavel para controlar se o loop principal deve continuar
-	SDL_Surface* screen;
-	SDL_Event event;
+int points = 0;
+int lifes = 2;
 
-	if(SDL_Init(SDL_INIT_VIDEO) == -1)
-	{
-		printf("Erro ao inicializar a SDL: %s\n", SDL_GetError()); //observe que, no Windows, isto é redirecionado para stdout.txt
-		return 1;
-	}
+void testColisionsReds(){
+	// entre as bolas vermelhas com as verdes
 
-	if((screen = SDL_SetVideoMode(640, 480, 16, SDL_DOUBLEBUF)) == NULL)
-	{
-		printf("Erro ao inicializar o vídeo: %s\n", SDL_GetError());
-		return 1;
-	}
+	int i, j;
+	int colision;
 
-	SDL_WM_SetCaption("Meu Programa Legal v1.0 - Pressione Espaco para prender/soltar o mouse e Esc para sair", "MeuProg");
+	for (i = 0; i < QNT_RED; i++){
+		for (j = 0; j < QNT_GREEN; j++){
+			colision = SDL_CollideBoundingCircle(reds[i].x, reds[i].y, reds[i].h/2-1, greens[j].x, greens[j].y, reds[i].h/2-1, 5);
 
-	while(running)
-	{
-		while(SDL_PollEvent(&event))
-		{
-			if(event.type == SDL_QUIT)
-			{
-				running = 0;
-			}
-			else if(event.type == SDL_KEYDOWN)
-			{
-				if(event.key.keysym.sym == SDLK_SPACE)
-				{
-					SDL_WM_GrabInput(!SDL_WM_GrabInput(SDL_GRAB_QUERY));
+			if (colision){
+				if (! greens[j].isFree){
+					lifes --;
+					freeAlreadyCounted();
 				}
-				else if(event.key.keysym.sym == SDLK_ESCAPE)
-				{
-					running = 0;
+			}
+			
+		}
+	}
+	
+	for (i = 0; i < QNT_RED; i++){
+		colision = SDL_CollideBoundingCircle(reds[i].x, reds[i].y, reds[i].h/2-1, cursor.place.x, cursor.place.y, reds[i].h/2-1, 5);
+
+		if (colision){
+			lifes --;
+			freeAlreadyCounted();
+		}
+	}
+}
+
+void freeAlreadyCounted(){
+	int i;
+
+	for (i = 0; i < QNT_GREEN; i++){
+		if (! greens[i].isFree){
+			greens[i].isFree = 1;
+			greens[i].x = 50 * i;
+			greens[i].y = 50;
+		}
+	}
+}
+
+int getPoints(){
+	int i;
+
+	int quantity = 0;
+
+	// verei quantas bolinhas verdes tem presas a branca, para retornar a quantidade de pontos
+	for (i = 0; i < QNT_GREEN; i++){
+		if (! greens[i].isFree)
+			quantity ++;
+	}
+
+	switch(quantity){
+		case 3:
+		freeAlreadyCounted();
+		return 1;
+
+		case 4:
+		freeAlreadyCounted();
+		return 5;
+
+		case 5:
+		freeAlreadyCounted();
+		return 11;
+
+		case 6:
+		freeAlreadyCounted();
+		return 17;
+
+		case 7:
+		freeAlreadyCounted();
+		return 25;
+
+		case 8:
+		freeAlreadyCounted();
+		return 33;
+
+		case 9:
+		freeAlreadyCounted();
+		return 41;
+
+		case 10:
+		freeAlreadyCounted();
+		return 51;
+
+		default:
+		freeAlreadyCounted();
+		return 0;
+	}
+}
+
+void testColisionsBlues(){
+	// entre as bolas vermelhas com as verdes
+
+	int i, j;
+	int colision;
+
+	for (i = 0; i < QNT_BLUE; i++){
+		for (j = 0; j < QNT_GREEN; j++){
+			colision = SDL_CollideBoundingCircle(blues[i].x, blues[i].y, blues[i].h/2-1, greens[j].x, greens[j].y, blues[i].h/2-1, 5);
+
+			if (colision){
+				if (! greens[j].isFree){
+					points += getPoints();
+					printf("Pontos %d\n", points);
+
+					getPoints();
+				}
+			}
+			
+		}
+	}
+	
+	for (i = 0; i < QNT_BLUE; i++){
+		colision = SDL_CollideBoundingCircle(blues[i].x, blues[i].y, blues[i].h/2-1, cursor.place.x, cursor.place.y, blues[i].h/2-1, 5);
+
+		if (colision){
+			points += getPoints();
+			printf("Pontos %d\n", points);
+
+			getPoints();
+		}
+	}
+}
+
+void testColisionsGreens(){
+	// entre as bolas verdes
+	int c, c2, i;
+
+	for (c = 0; c < QNT_GREEN; c++){
+		for (c2 = 0; c2 < QNT_GREEN; c2++){
+			if (c != c2){
+				if (! greens[c2].isFree){
+					i = SDL_CollideBoundingCircle(greens[c2].x, greens[c2].y, greens[c2].h/2-1, greens[c].x, greens[c].y, greens[c2].h/2-1, 5);					
+					if (i){
+						if (greens[c].isFree){
+							printf("Colisão de %d %d\n", c2, c);
+							greens[c].isFree = 0;
+						}
+					}
 				}
 			}
 		}
+
+		i = SDL_CollideBoundingCircle(cursor.place.x, cursor.place.y, cursor.place.h/2-1, greens[c].x, greens[c].y, cursor.place.h/2-1, 5);
+		if (i){
+			greens[c].isFree = 0;
+		}else{
+			if (greens[c].isFree){
+				greens[c].y += cursor.incY;
+				if(((greens[c].x + greens[c].w) > screen->w) || (greens[c].x < 0)) 
+				{
+					cursor.incX = -cursor.incX;
+					greens[c].x += cursor.incX;
+				}
+				if(((greens[c].y + greens[c].h) > screen->h) || (greens[c].y < 0))
+				{
+					cursor.incY = -cursor.incY;
+					greens[c].y += cursor.incY;
+				}
+			}else{
+
+			}
+		}
 	}
-
-	SDL_Quit();
-
-	return 0;
 }
 
-
-#define N_PARAM 9
-
-char* param_text[N_PARAM] = {"SDL_SWSURFACE", "SDL_HWSURFACE", "SDL_ASYNCBLIT", "SDL_ANYFORMAT", "SDL_HWPALETTE", "SDL_DOUBLEBUF", "SDL_FULLSCREEN", "SDL_RESIZABLE", "SDL_NOFRAME"};
-int param_code[N_PARAM] = {SDL_SWSURFACE, SDL_HWSURFACE, SDL_ASYNCBLIT, SDL_ANYFORMAT, SDL_HWPALETTE, SDL_DOUBLEBUF, SDL_FULLSCREEN, SDL_RESIZABLE, SDL_NOFRAME};
-
-int str_to_param(char* str)
-{
-	int i;
-
-	for(i=0; i<N_PARAM; i++)
-	{
-		if(!strcmp(str, param_text[i])) return param_code[i];
-	}
-
-	return -1;
-}
 
 int main(int argc, char** argv)
 {
@@ -139,13 +252,12 @@ int main(int argc, char** argv)
 	green.incX = green.incY = 0;
 	green.isFree = 1;
 	green.type = Green;
-	green.place.x = 0;
-	green.place.y = 0;
-	green.place.w = 40;
-	green.place.h = 40;
+	green.x = 0;
+	green.y = 0;
+	green.w = 40;
+	green.h = 40;
 	green.isFree = 1;
 	
-	ball greens[5];
 
 	int c;
 
@@ -154,25 +266,38 @@ int main(int argc, char** argv)
 		greens[c].incX = greens[c].incY = 0;
 		greens[c].isFree = 1;
 		greens[c].type = Green;
-		greens[c].place.x = 50*c;
-		greens[c].place.y = 0;
-		greens[c].place.w = 40;
-		greens[c].place.h = 40;
+		greens[c].x = 50*c;
+		greens[c].y = 0;
+		greens[c].w = 40;
+		greens[c].h = 40;
 		greens[c].isFree = 1;
 	}
 
-	// ball green2;
-	// green2.image = IMG_Load("green.png");
-	// green2.incX = green2.incY = 0;
-	// green2.isFree = 1;
-	// green2.type = Green;
-	// green2.place.x = 100;
-	// green2.place.y = 0;
-	// green2.place.w = 40;
-	// green2.place.h = 40;
-	// green2.isFree = 1;
+	for (c = 0; c < QNT_RED; c ++){
+		reds[c].image = IMG_Load("red.png");
+		reds[c].incX = reds[c].incY = 0;
+		reds[c].isFree = 1;
+		reds[c].type = Red;
+		reds[c].x = 60*c;
+		reds[c].y = 50;
+		reds[c].w = 40;
+		reds[c].h = 40;
+		reds[c].isFree = 1;
+	}
 
-	cursor.image = IMG_Load("red.png");
+	for (c = 0; c < QNT_BLUE; c ++){
+		blues[c].image = IMG_Load("blue.png");
+		blues[c].incX = blues[c].incY = 0;
+		blues[c].isFree = 1;
+		blues[c].type = Red;
+		blues[c].x = 60*c;
+		blues[c].y = 100;
+		blues[c].w = 40;
+		blues[c].h = 40;
+		blues[c].isFree = 1;
+	}
+
+	cursor.image = IMG_Load("yellow.png");
 	cursor.incX = 1;
 	cursor.incY = 1;
 	cursor.place.x = 50;
@@ -183,6 +308,7 @@ int main(int argc, char** argv)
 	SDL_Init(SDL_INIT_VIDEO);
 	screen = SDL_SetVideoMode(640, 480, 8, SDL_SWSURFACE);
 	SDL_ShowCursor(SDL_DISABLE);
+
 	while(!quit)
 	{
 		while(SDL_PollEvent(&event))
@@ -210,62 +336,46 @@ int main(int argc, char** argv)
 
 				for (c = 0; c < QNT_GREEN; c++){
 					if (! greens[c].isFree){
-						greens[c].place.x += event.motion.xrel;
-						greens[c].place.y += event.motion.yrel;
+						greens[c].x += event.motion.xrel;
+						greens[c].y += event.motion.yrel;
 					}
 				}
 			}
 		}
 
-		int c2;
-		int i;
-		for (c = 0; c < QNT_GREEN; c++){
-			for (c2 = 0; c2 < QNT_GREEN; c2++){
-				if (c != c2){
-					if (! greens[c2].isFree){
-						i = SDL_CollideBoundingCircle(greens[c2].place.x, greens[c2].place.y, greens[c2].place.h/2-1, greens[c].place.x, greens[c].place.y, greens[c2].place.h/2-1, 5);					
-						if (i){
-							if (greens[c].isFree){
-								printf("Colisão de %d %d\n", c2, c);
-								greens[c].isFree = 0;
-							}
-						}
-					}
-				}
+		if (lifes > 0){
+			testColisionsGreens();
+			testColisionsReds();
+			testColisionsBlues();
+
+			SDL_FillRect(screen, NULL, SDL_MapRGB(screen->format, 0, 0, 0));
+
+			SDL_Rect rect;
+
+			for (c = 0; c < QNT_GREEN; c++){
+				rect.x = greens[c].x;
+				rect.y = greens[c].y;
+				SDL_BlitSurface(greens[c].image, NULL, screen, &rect);
 			}
 
-			i = SDL_CollideBoundingCircle(cursor.place.x, cursor.place.y, cursor.place.h/2-1, greens[c].place.x, greens[c].place.y, cursor.place.h/2-1, 5);
-			if (i){
-				greens[c].isFree = 0;
-			}else{
-				if (greens[c].isFree){
-					greens[c].place.y += cursor.incY;
-					if(((greens[c].place.x + greens[c].place.w) > screen->w) || (greens[c].place.x < 0)) 
-					{
-						cursor.incX = -cursor.incX;
-						greens[c].place.x += cursor.incX;
-					}
-					if(((greens[c].place.y + greens[c].place.h) > screen->h) || (greens[c].place.y < 0))
-					{
-						cursor.incY = -cursor.incY;
-						greens[c].place.y += cursor.incY;
-					}
-				}else{
-
-				}
+			for (c = 0; c < QNT_RED; c++){
+				rect.x = reds[c].x;
+				rect.y = reds[c].y;
+				SDL_BlitSurface(reds[c].image, NULL, screen, &rect);
 			}
-		}
-		
-		SDL_FillRect(screen, NULL, SDL_MapRGB(screen->format, 0, 0, 0));
-		
-		for (c = 0; c < QNT_GREEN; c++){
-			SDL_BlitSurface(greens[c].image, NULL, screen, &greens[c].place);
-		}
-		SDL_BlitSurface(cursor.image, NULL, screen, &cursor.place);
 
-		SDL_WM_SetCaption("Projeto Final - Jonathan Silva", "Projeto final");
+			for (c = 0; c < QNT_BLUE; c++){
+				rect.x = blues[c].x;
+				rect.y = blues[c].y;
+				SDL_BlitSurface(blues[c].image, NULL, screen, &rect);
+			}
 
-		SDL_Flip(screen);
+			SDL_BlitSurface(cursor.image, NULL, screen, &cursor.place);
+
+			SDL_WM_SetCaption("Projeto Final - Jonathan Silva", "Projeto final");
+
+			SDL_Flip(screen);
+		}
 	}
 
 	SDL_Quit();
