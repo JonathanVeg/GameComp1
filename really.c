@@ -9,15 +9,22 @@
 #include "SDL/SDL.h"
 #include "SDL/SDL_image.h"
 #include "stdlib.h"
+#include "time.h"
 
 #define SCREEN_W 600
 #define SCREEN_H 400
 
-#define QNT_GREEN 7
-#define QNT_RED 7
-#define QNT_BLUE 7
+// #define QNT_GREEN 7
+// #define QNT_RED 5
+// #define QNT_BLUE 5
+
+#define QNT_BALLS 100
+
+#define FILE_PLACE "records.bin"
 
 typedef unsigned short int usint;
+
+int records[5];
 
 typedef struct {
 	SDL_Surface *image;
@@ -43,6 +50,7 @@ typedef struct {
     int incX, incY; // incrementos (positivos e/ou negativos)
 
     int x, y, h, w;
+    
     // SDL_Rect place;
 
     usint isFree; // se não está grudada. Só server para as Green Balls
@@ -50,6 +58,91 @@ typedef struct {
     typesOfBall type;
 } ball; // as bolas, todas, menos a amarela
 
+
+int readRecords(){
+	FILE *file = fopen(FILE_PLACE, "r");
+
+	if (! file){
+		printf("Erro ao abrir (ou gerar) o arquivo de recordes.\n");
+		return 0;
+	}
+
+	printf("ARQUIVO ABERTO\n");
+
+	fread(records, sizeof(int), 5, file);
+	
+	int i;
+
+	for (i = 0; i < 5; i++)
+	{
+		printf("RECORD %d: %d\n", i, records[i]);
+	}
+
+	fclose(file);
+
+	return 1;	
+}
+
+void sortRecords(){
+	int aux = 0;
+
+	int i, j;
+
+	for (i = 0; i < 5; i++)
+	{
+		for (j = 0; j < 5; j++)
+		{
+			if (records[i] > records[j]){				
+				aux = records[i];
+				records[i] = records[j];
+				records[j] = aux;
+			}
+		}
+	}
+
+}
+
+int writeRecord(){
+	FILE *file = fopen(FILE_PLACE, "w");
+
+	if (! file){
+		printf("Erro ao abrir (ou gerar) o arquivo de recordes.\n");
+		return 0;
+	}
+
+	printf("FILE ABERTO\n");
+
+	fwrite(records, sizeof(int), 5, file);
+
+	fclose(file);
+
+	int i;
+
+	for (i = 0; i < 5; i++)
+	{
+		printf("RECORD %d: %d\n", i, records[i]);
+	}
+
+
+	return 1;	
+}
+
+int insertCurrentPoint(int point){
+	int i, j, aux;
+
+	for (i = 0; i < 5; i++){
+		if (point > records[i]){
+
+			records[4] = point;
+
+			sortRecords();
+
+			return 1;
+		}
+	}
+
+	return 0; // não é um novo record
+}
 
 int SDL_CollideBoundingCircle(int x1, int y1, int r1, int x2, int y2, int r2, int offset){
 	int xdiff = x2 - x1; //- diferença no eixo x
@@ -65,53 +158,178 @@ int SDL_CollideBoundingCircle(int x1, int y1, int r1, int x2, int y2, int r2, in
 	return (dcentre_sq - r_sum_sq <= (offset*offset));
 }
 
-ball greens[QNT_GREEN];
-ball reds[QNT_RED];
-ball blues[QNT_BLUE];
+ball balls[QNT_BALLS];
+
+// ball greens[QNT_GREEN];
+// ball reds[QNT_RED];
+// ball blues[QNT_BLUE];
 
 
 int points = 0;
 int lifes = 2;
 
-void testColisionsReds(){
-	// entre as bolas vermelhas com as verdes
+void freeAlreadyCounted(){
+	int i;
 
-	int i, j;
-	int colision;
+	// for (i = 0; i < QNT_GREEN; i++){
+	// 	if (! greens[i].isFree){
+	// 		greens[i].isFree = 1;
+	// 		greens[i].x = 50 * i;
+	// 		greens[i].y = 50;
+	// 	}
+	// }
 
-	for (i = 0; i < QNT_RED; i++){
-		for (j = 0; j < QNT_GREEN; j++){
-			colision = SDL_CollideBoundingCircle(reds[i].x, reds[i].y, reds[i].h/2-1, greens[j].x, greens[j].y, reds[i].h/2-1, 5);
-
-			if (colision){
-				if (! greens[j].isFree){
-					lifes --;
-					freeAlreadyCounted();
-				}
-			}
-			
-		}
-	}
-	
-	for (i = 0; i < QNT_RED; i++){
-		colision = SDL_CollideBoundingCircle(reds[i].x, reds[i].y, reds[i].h/2-1, cursor.place.x, cursor.place.y, reds[i].h/2-1, 5);
-
-		if (colision){
-			lifes --;
-			freeAlreadyCounted();
+	for (i = 0; i < QNT_BALLS; i++){
+		if ((balls[i].type == Green) && (!balls[i].isFree)){
+			balls[i].isFree = 1;
+			balls[i].x = 50 * i;
+			balls[i].y = 50;	
 		}
 	}
 }
 
-void freeAlreadyCounted(){
-	int i;
+// void testColisionsReds(){
+// 	// entre as bolas vermelhas com as verdes
 
-	for (i = 0; i < QNT_GREEN; i++){
-		if (! greens[i].isFree){
-			greens[i].isFree = 1;
-			greens[i].x = 50 * i;
-			greens[i].y = 50;
+// 	int i, j;
+// 	int colision;
+
+// 	for (i = 0; i < QNT_RED; i++){
+// 		for (j = 0; j < QNT_GREEN; j++){
+// 			colision = SDL_CollideBoundingCircle(reds[i].x, reds[i].y, reds[i].h/2-1, greens[j].x, greens[j].y, reds[i].h/2-1, 5);
+
+// 			if (colision){
+// 				if (! greens[j].isFree){
+// 					lifes --;
+// 					freeAlreadyCounted();
+// 				}
+// 			}
+
+// 		}
+// 	}
+
+// 	for (i = 0; i < QNT_RED; i++){
+// 		colision = SDL_CollideBoundingCircle(reds[i].x, reds[i].y, reds[i].h/2-1, cursor.place.x, cursor.place.y, reds[i].h/2-1, 5);
+
+// 		if (colision){
+// 			lifes --;
+// 			freeAlreadyCounted();
+// 		}
+// 	}
+// }
+
+// void testColisionsBlues(){
+// 	// entre as bolas vermelhas com as verdes
+
+// 	int i, j;
+// 	int colision;
+
+// 	for (i = 0; i < QNT_BLUE; i++){
+// 		for (j = 0; j < QNT_GREEN; j++){
+// 			colision = SDL_CollideBoundingCircle(blues[i].x, blues[i].y, blues[i].h/2-1, greens[j].x, greens[j].y, blues[i].h/2-1, 5);
+
+// 			if (colision){
+// 				if (! greens[j].isFree){
+// 					points += getPoints();
+// 					getPoints();
+// 				}
+// 			}
+
+// 		}
+// 	}
+
+// 	for (i = 0; i < QNT_BLUE; i++){
+// 		colision = SDL_CollideBoundingCircle(blues[i].x, blues[i].y, blues[i].h/2-1, cursor.place.x, cursor.place.y, blues[i].h/2-1, 5);
+
+// 		if (colision){
+// 			points += getPoints();
+// 			getPoints();
+// 		}
+// 	}
+// }
+
+// void testColisionsGreens(){
+// 	// entre as bolas verdes
+// 	int c, c2, i;
+
+// 	for (c = 0; c < QNT_GREEN; c++){
+// 		for (c2 = 0; c2 < QNT_GREEN; c2++){
+// 			if (c != c2){
+// 				if (! greens[c2].isFree){
+// 					i = SDL_CollideBoundingCircle(greens[c2].x, greens[c2].y, greens[c2].h/2-1, greens[c].x, greens[c].y, greens[c2].h/2-1, 5);					
+// 					if (i){
+// 						if (greens[c].isFree){
+// 							greens[c].isFree = 0;
+// 						}
+// 					}
+// 				}
+// 			}
+// 		}
+
+// 		i = SDL_CollideBoundingCircle(cursor.place.x, cursor.place.y, cursor.place.h/2-1, greens[c].x, greens[c].y, cursor.place.h/2-1, 5);
+// 		if (i){
+// 			greens[c].isFree = 0;
+// 		}else{
+// 			if (greens[c].isFree){
+// 				greens[c].y += greens[c].incY;
+// 				if(((greens[c].x + greens[c].w) > screen->w) || (greens[c].x < 0)) 
+// 				{
+// 					greens[c].incX = -greens[c].incX;
+// 				}
+// 				if(((greens[c].y + greens[c].h) > screen->h) || (greens[c].y < 0))
+// 				{
+// 					greens[c].incY = -greens[c].incY;
+// 				}
+// 				greens[c].y += greens[c].incY;
+// 				greens[c].x += greens[c].incX;
+// 			}else{
+
+// 			}
+// 		}
+// 	}
+// }
+
+void testColisions(){
+	int i, j;
+	int colision;
+
+	for (i = 0; i < QNT_BALLS; i++){
+		// aqui eu verei se a bola I está em choque com TODAS as outras bolas.
+		// caso ela seja verde e não esteja livre. Se ela for verde, mas estiver livre
+		// não importa se bateu ou não.
+		if (balls[i].type == Green && (!balls[i].isFree)){
+			for (j = i+1; j < QNT_BALLS; j++){
+				colision = SDL_CollideBoundingCircle(balls[j].x, balls[j].y, balls[j].h/2-1, balls[i].x, balls[i].y, balls[j].h/2-1, 5);
+				
+				if (colision){
+					if (balls[j].type == Red){
+						lifes --;
+						freeAlreadyCounted();
+					}else{
+						if (balls[j].type == Blue){
+							points += getPoints();
+							getPoints();
+							
+						}else{
+							if (balls[j].type == Green && balls[j].isFree){
+								balls[j].isFree = 0;
+							}
+						}
+					}
+				}
+			}
 		}
+	}
+}
+
+
+int getDirection(){
+
+	int random = rand() % 2;
+
+	switch (random){
+		case 0: return -1;
+		case 1: return 1;
 	}
 }
 
@@ -121,8 +339,8 @@ int getPoints(){
 	int quantity = 0;
 
 	// verei quantas bolinhas verdes tem presas a branca, para retornar a quantidade de pontos
-	for (i = 0; i < QNT_GREEN; i++){
-		if (! greens[i].isFree)
+	for (i = 0; i < QNT_BALLS; i++){
+		if ((! balls[i].isFree) && balls[i].type == Green)
 			quantity ++;
 	}
 
@@ -165,137 +383,57 @@ int getPoints(){
 	}
 }
 
-void testColisionsBlues(){
-	// entre as bolas vermelhas com as verdes
-
-	int i, j;
-	int colision;
-
-	for (i = 0; i < QNT_BLUE; i++){
-		for (j = 0; j < QNT_GREEN; j++){
-			colision = SDL_CollideBoundingCircle(blues[i].x, blues[i].y, blues[i].h/2-1, greens[j].x, greens[j].y, blues[i].h/2-1, 5);
-
-			if (colision){
-				if (! greens[j].isFree){
-					points += getPoints();
-					printf("Pontos %d\n", points);
-
-					getPoints();
-				}
-			}
-			
-		}
-	}
-	
-	for (i = 0; i < QNT_BLUE; i++){
-		colision = SDL_CollideBoundingCircle(blues[i].x, blues[i].y, blues[i].h/2-1, cursor.place.x, cursor.place.y, blues[i].h/2-1, 5);
-
-		if (colision){
-			points += getPoints();
-			printf("Pontos %d\n", points);
-
-			getPoints();
-		}
-	}
-}
-
-void testColisionsGreens(){
-	// entre as bolas verdes
-	int c, c2, i;
-
-	for (c = 0; c < QNT_GREEN; c++){
-		for (c2 = 0; c2 < QNT_GREEN; c2++){
-			if (c != c2){
-				if (! greens[c2].isFree){
-					i = SDL_CollideBoundingCircle(greens[c2].x, greens[c2].y, greens[c2].h/2-1, greens[c].x, greens[c].y, greens[c2].h/2-1, 5);					
-					if (i){
-						if (greens[c].isFree){
-							printf("Colisão de %d %d\n", c2, c);
-							greens[c].isFree = 0;
-						}
-					}
-				}
-			}
-		}
-
-		i = SDL_CollideBoundingCircle(cursor.place.x, cursor.place.y, cursor.place.h/2-1, greens[c].x, greens[c].y, cursor.place.h/2-1, 5);
-		if (i){
-			greens[c].isFree = 0;
-		}else{
-			if (greens[c].isFree){
-				greens[c].y += cursor.incY;
-				if(((greens[c].x + greens[c].w) > screen->w) || (greens[c].x < 0)) 
-				{
-					cursor.incX = -cursor.incX;
-					greens[c].x += cursor.incX;
-				}
-				if(((greens[c].y + greens[c].h) > screen->h) || (greens[c].y < 0))
-				{
-					cursor.incY = -cursor.incY;
-					greens[c].y += cursor.incY;
-				}
-			}else{
-
-			}
-		}
-	}
-}
-
-
 int main(int argc, char** argv)
 {
+
+	sortRecords();
+
+	srand(time(NULL));
+
 	SDL_Event event;
 	int quit = 0;
-	
-	ball green;
-	green.image = IMG_Load("green.png");
-	green.incX = green.incY = 0;
-	green.isFree = 1;
-	green.type = Green;
-	green.x = 0;
-	green.y = 0;
-	green.w = 40;
-	green.h = 40;
-	green.isFree = 1;
-	
 
 	int c;
 
-	for (c = 0; c < QNT_GREEN; c ++){
-		greens[c].image = IMG_Load("green.png");
-		greens[c].incX = greens[c].incY = 0;
-		greens[c].isFree = 1;
-		greens[c].type = Green;
-		greens[c].x = 50*c;
-		greens[c].y = 0;
-		greens[c].w = 40;
-		greens[c].h = 40;
-		greens[c].isFree = 1;
-	}
+	// for (c = 0; c < QNT_GREEN; c ++){
+	// 	greens[c].image = IMG_Load("green.png");
+	// 	greens[c].isFree = 1;
+	// 	greens[c].type = Green;
+	// 	greens[c].x = 50*c;
+	// 	greens[c].y = 0;
+	// 	greens[c].w = 40;
+	// 	greens[c].h = 40;
+	// 	greens[c].isFree = 1;
+	// 	greens[c].incX = getDirection();
+	// 	greens[c].incY = getDirection();
 
-	for (c = 0; c < QNT_RED; c ++){
-		reds[c].image = IMG_Load("red.png");
-		reds[c].incX = reds[c].incY = 0;
-		reds[c].isFree = 1;
-		reds[c].type = Red;
-		reds[c].x = 60*c;
-		reds[c].y = 50;
-		reds[c].w = 40;
-		reds[c].h = 40;
-		reds[c].isFree = 1;
-	}
+	// 	printf("%d\n", greens[c].incY);
 
-	for (c = 0; c < QNT_BLUE; c ++){
-		blues[c].image = IMG_Load("blue.png");
-		blues[c].incX = blues[c].incY = 0;
-		blues[c].isFree = 1;
-		blues[c].type = Red;
-		blues[c].x = 60*c;
-		blues[c].y = 100;
-		blues[c].w = 40;
-		blues[c].h = 40;
-		blues[c].isFree = 1;
-	}
+	// }
+
+	// for (c = 0; c < QNT_RED; c ++){
+	// 	reds[c].image = IMG_Load("red.png");
+	// 	reds[c].incX = reds[c].incY = 0;
+	// 	reds[c].isFree = 1;
+	// 	reds[c].type = Red;
+	// 	reds[c].x = 60*c;
+	// 	reds[c].y = 50;
+	// 	reds[c].w = 40;
+	// 	reds[c].h = 40;
+	// 	reds[c].isFree = 1;
+	// }
+
+	// for (c = 0; c < QNT_BLUE; c ++){
+	// 	blues[c].image = IMG_Load("blue.png");
+	// 	blues[c].incX = blues[c].incY = 0;
+	// 	blues[c].isFree = 1;
+	// 	blues[c].type = Red;
+	// 	blues[c].x = 60*c;
+	// 	blues[c].y = 100;
+	// 	blues[c].w = 40;
+	// 	blues[c].h = 40;
+	// 	blues[c].isFree = 1;
+	// }
 
 	cursor.image = IMG_Load("yellow.png");
 	cursor.incX = 1;
@@ -308,6 +446,8 @@ int main(int argc, char** argv)
 	SDL_Init(SDL_INIT_VIDEO);
 	screen = SDL_SetVideoMode(640, 480, 8, SDL_SWSURFACE);
 	SDL_ShowCursor(SDL_DISABLE);
+
+	readRecords();
 
 	while(!quit)
 	{
@@ -323,60 +463,67 @@ int main(int argc, char** argv)
 				{
 					quit = 1;
 				}
-				if(event.key.keysym.sym == SDLK_d){
-					cursor.place.x += cursor.incX;
-				}
-				if(event.key.keysym.sym == SDLK_a){
-					cursor.place.x -= cursor.incX;
-				}
 			}
 			else if (event.type == SDL_MOUSEMOTION){
 				cursor.place.x = event.motion.x - cursor.place.h/2;
 				cursor.place.y = event.motion.y - cursor.place.h/2;
 
-				for (c = 0; c < QNT_GREEN; c++){
-					if (! greens[c].isFree){
-						greens[c].x += event.motion.xrel;
-						greens[c].y += event.motion.yrel;
+				for (c = 0; c < QNT_BALLS; c++){
+					if (balls[c].type == Green && (!balls[c].isFree)){
+						// greens[c].isFree = 1;
+						balls[c].x += event.motion.xrel;
+						balls[c].y += event.motion.yrel;
 					}
 				}
 			}
 		}
 
 		if (lifes > 0){
-			testColisionsGreens();
-			testColisionsReds();
-			testColisionsBlues();
+			testColisions();
 
 			SDL_FillRect(screen, NULL, SDL_MapRGB(screen->format, 0, 0, 0));
 
 			SDL_Rect rect;
 
-			for (c = 0; c < QNT_GREEN; c++){
-				rect.x = greens[c].x;
-				rect.y = greens[c].y;
-				SDL_BlitSurface(greens[c].image, NULL, screen, &rect);
-			}
+			// for (c = 0; c < QNT_GREEN; c++){
+			// 	rect.x = greens[c].x;
+			// 	rect.y = greens[c].y;
+			// 	SDL_BlitSurface(greens[c].image, NULL, screen, &rect);
+			// }
 
-			for (c = 0; c < QNT_RED; c++){
-				rect.x = reds[c].x;
-				rect.y = reds[c].y;
-				SDL_BlitSurface(reds[c].image, NULL, screen, &rect);
-			}
+			// for (c = 0; c < QNT_RED; c++){
+			// 	rect.x = reds[c].x;
+			// 	rect.y = reds[c].y;
+			// 	SDL_BlitSurface(reds[c].image, NULL, screen, &rect);
+			// }
 
-			for (c = 0; c < QNT_BLUE; c++){
-				rect.x = blues[c].x;
-				rect.y = blues[c].y;
-				SDL_BlitSurface(blues[c].image, NULL, screen, &rect);
-			}
+			// for (c = 0; c < QNT_BLUE; c++){
+			// 	rect.x = blues[c].x;
+			// 	rect.y = blues[c].y;
+			// 	SDL_BlitSurface(blues[c].image, NULL, screen, &rect);
+			// }
 
 			SDL_BlitSurface(cursor.image, NULL, screen, &cursor.place);
 
 			SDL_WM_SetCaption("Projeto Final - Jonathan Silva", "Projeto final");
 
 			SDL_Flip(screen);
+		} else {
+			insertCurrentPoint(points);
+
+			points = 0;
 		}
 	}
+
+
+	int i;
+
+	for (i = 0; i < 5; i++){
+		printf("Record %d: %d\n", i, records[i]);
+	}
+
+	writeRecord();
+
 
 	SDL_Quit();
 
