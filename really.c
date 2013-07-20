@@ -18,7 +18,7 @@
 // #define QNT_RED 5
 // #define QNT_BLUE 5
 
-#define QNT_BALLS 100
+#define QNT_BALLS 15
 
 #define FILE_PLACE "records.bin"
 
@@ -50,8 +50,8 @@ typedef struct {
     int incX, incY; // incrementos (positivos e/ou negativos)
 
     int x, y, h, w;
-    
-    // SDL_Rect place;
+
+    usint isActive; // para saber se ela ja está na tela, para limitar o número de bolas visíveis
 
     usint isFree; // se não está grudada. Só server para as Green Balls
 
@@ -383,6 +383,25 @@ int getPoints(){
 	}
 }
 
+typesOfBall sortType(){
+	usint type = (rand() * 100) % 10;
+
+	if (type < 5)
+		return Green;
+	else if (type < 8)
+		return Blue;
+	else
+		return Red;
+}
+
+int sortPositionX(){
+	return (rand() % SCREEN_W);
+}
+
+int sortPositionY(){
+	return (rand() % (SCREEN_H/2)); // só sai da parte de cima da tela
+}
+
 int main(int argc, char** argv)
 {
 
@@ -390,50 +409,37 @@ int main(int argc, char** argv)
 
 	srand(time(NULL));
 
-	SDL_Event event;
-	int quit = 0;
+	printf("%d\n", rand());
+	printf("%d\n", rand());
+	printf("%d\n", rand());
 
+	SDL_Event event;
+
+	int quit = 0;
+	
 	int c;
 
-	// for (c = 0; c < QNT_GREEN; c ++){
-	// 	greens[c].image = IMG_Load("green.png");
-	// 	greens[c].isFree = 1;
-	// 	greens[c].type = Green;
-	// 	greens[c].x = 50*c;
-	// 	greens[c].y = 0;
-	// 	greens[c].w = 40;
-	// 	greens[c].h = 40;
-	// 	greens[c].isFree = 1;
-	// 	greens[c].incX = getDirection();
-	// 	greens[c].incY = getDirection();
+	for (c = 0; c < QNT_BALLS; c ++ ){
+		balls[c].type = sortType();
+	
+		switch (balls[c].type){
+			case Green:
+			balls[c].image = IMG_Load("green.png");
+			break;
+			
+			case Red:
+			balls[c].image = IMG_Load("red.png");
+			break;
 
-	// 	printf("%d\n", greens[c].incY);
+			case Blue:
+			balls[c].image = IMG_Load("blue.png");
+			break;
+		}
+			balls[c].x = sortPositionX();
+			balls[c].x = sortPositionY();
 
-	// }
-
-	// for (c = 0; c < QNT_RED; c ++){
-	// 	reds[c].image = IMG_Load("red.png");
-	// 	reds[c].incX = reds[c].incY = 0;
-	// 	reds[c].isFree = 1;
-	// 	reds[c].type = Red;
-	// 	reds[c].x = 60*c;
-	// 	reds[c].y = 50;
-	// 	reds[c].w = 40;
-	// 	reds[c].h = 40;
-	// 	reds[c].isFree = 1;
-	// }
-
-	// for (c = 0; c < QNT_BLUE; c ++){
-	// 	blues[c].image = IMG_Load("blue.png");
-	// 	blues[c].incX = blues[c].incY = 0;
-	// 	blues[c].isFree = 1;
-	// 	blues[c].type = Red;
-	// 	blues[c].x = 60*c;
-	// 	blues[c].y = 100;
-	// 	blues[c].w = 40;
-	// 	blues[c].h = 40;
-	// 	blues[c].isFree = 1;
-	// }
+	//	balls[c].IMG_Load()
+	}
 
 	cursor.image = IMG_Load("yellow.png");
 	cursor.incX = 1;
@@ -484,6 +490,12 @@ int main(int argc, char** argv)
 			SDL_FillRect(screen, NULL, SDL_MapRGB(screen->format, 0, 0, 0));
 
 			SDL_Rect rect;
+
+			for (c = 0; c < QNT_BALLS; c++){
+				rect.x = balls[c].x;
+				rect.y = balls[c].y;
+				SDL_BlitSurface(balls[c].image, NULL, screen, &rect);
+			}
 
 			// for (c = 0; c < QNT_GREEN; c++){
 			// 	rect.x = greens[c].x;

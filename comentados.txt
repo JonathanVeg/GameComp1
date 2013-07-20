@@ -1,0 +1,40 @@
+
+	// for (c = 0; c < QNT_GREEN; c ++){
+	// 	greens[c].image = IMG_Load("green.png");
+	// 	greens[c].isFree = 1;
+	// 	greens[c].type = Green;
+	// 	greens[c].x = 50*c;
+	// 	greens[c].y = 0;
+	// 	greens[c].w = 40;
+	// 	greens[c].h = 40;
+	// 	greens[c].isFree = 1;
+	// 	greens[c].incX = getDirection();
+	// 	greens[c].incY = getDirection();
+
+	// 	printf("%d\n", greens[c].incY);
+
+	// }
+
+	// for (c = 0; c < QNT_RED; c ++){
+	// 	reds[c].image = IMG_Load("red.png");
+	// 	reds[c].incX = reds[c].incY = 0;
+	// 	reds[c].isFree = 1;
+	// 	reds[c].type = Red;
+	// 	reds[c].x = 60*c;
+	// 	reds[c].y = 50;
+	// 	reds[c].w = 40;
+	// 	reds[c].h = 40;
+	// 	reds[c].isFree = 1;
+	// }
+
+	// for (c = 0; c < QNT_BLUE; c ++){
+	// 	blues[c].image = IMG_Load("blue.png");
+	// 	blues[c].incX = blues[c].incY = 0;
+	// 	blues[c].isFree = 1;
+	// 	blues[c].type = Red;
+	// 	blues[c].x = 60*c;
+	// 	blues[c].y = 100;
+	// 	blues[c].w = 40;
+	// 	blues[c].h = 40;
+	// 	blues[c].isFree = 1;
+	// }
