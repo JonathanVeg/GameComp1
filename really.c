@@ -291,28 +291,57 @@ void freeAlreadyCounted(){
 
 void testColisions(){
 	int i, j;
-	int colision;
+	int colision = 0;
+
 
 	for (i = 0; i < QNT_BALLS; i++){
 		// aqui eu verei se a bola I está em choque com TODAS as outras bolas.
 		// caso ela seja verde e não esteja livre. Se ela for verde, mas estiver livre
 		// não importa se bateu ou não.
-		if (balls[i].type == Green && (!balls[i].isFree)){
-			for (j = i+1; j < QNT_BALLS; j++){
-				colision = SDL_CollideBoundingCircle(balls[j].x, balls[j].y, balls[j].h/2-1, balls[i].x, balls[i].y, balls[j].h/2-1, 5);
-				
-				if (colision){
-					if (balls[j].type == Red){
-						lifes --;
-						freeAlreadyCounted();
-					}else{
-						if (balls[j].type == Blue){
-							points += getPoints();
-							getPoints();
-							
+		colision = SDL_CollideBoundingCircle(cursor.incX, cursor.incY, cursor.place.h/2-1, balls[i].x, balls[i].y, balls[j].h/2-1, 5);
+		printf("%d\n", colision);
+		if (colision){
+			printf("CURSOR\n");
+			if (balls[i].type == Red){
+				printf("RED\n");
+				lifes --;
+				freeAlreadyCounted();
+			}else{
+				if (balls[i].type == Blue){
+					points += getPoints();
+					printf("AZUL\n");
+					getPoints();
+				}else{
+					if (balls[i].type == Green && balls[i].isFree){
+						balls[i].isFree = 0;
+					}
+				}
+			}
+		}
+
+		for (i = 0; i < QNT_BALLS; i++){
+			// aqui eu verei se a bola I está em choque com TODAS as outras bolas.
+			// caso ela seja verde e não esteja livre. Se ela for verde, mas estiver livre
+			// não importa se bateu ou não.
+			if (balls[i].type == Green && (! balls[i].isFree)){
+				for (j = i+1; j < QNT_BALLS; j++){
+					colision = SDL_CollideBoundingCircle(balls[j].x, balls[j].y, balls[j].h/2-1, balls[i].x, balls[i].y, balls[j].h/2-1, 5);
+
+					if (colision){
+						if (balls[j].type == Red){
+							printf("RED\n");
+							lifes --;
+							freeAlreadyCounted();
 						}else{
-							if (balls[j].type == Green && balls[j].isFree){
-								balls[j].isFree = 0;
+							if (balls[j].type == Blue){
+								points += getPoints();
+								printf("AZUL\n");
+								getPoints();
+
+							}else{
+								if (balls[j].type == Green && balls[j].isFree){
+									balls[j].isFree = 0;
+								}
 							}
 						}
 					}
@@ -321,7 +350,6 @@ void testColisions(){
 		}
 	}
 }
-
 
 int getDirection(){
 
@@ -421,7 +449,7 @@ int main(int argc, char** argv)
 
 	for (c = 0; c < QNT_BALLS; c ++ ){
 		balls[c].type = sortType();
-	
+
 		switch (balls[c].type){
 			case Green:
 			balls[c].image = IMG_Load("green.png");
@@ -435,8 +463,11 @@ int main(int argc, char** argv)
 			balls[c].image = IMG_Load("blue.png");
 			break;
 		}
-			balls[c].x = sortPositionX();
-			balls[c].x = sortPositionY();
+		
+		balls[c].x = sortPositionX();
+		balls[c].y = sortPositionY();
+
+		balls[c].isFree = 1;
 
 	//	balls[c].IMG_Load()
 	}
@@ -444,8 +475,8 @@ int main(int argc, char** argv)
 	cursor.image = IMG_Load("yellow.png");
 	cursor.incX = 1;
 	cursor.incY = 1;
-	cursor.place.x = 50;
-	cursor.place.y = 0;
+	cursor.place.x = 150;
+	cursor.place.y = 150;
 	cursor.place.w = 40;
 	cursor.place.h = 40;
 
